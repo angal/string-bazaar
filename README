@@ -1,0 +1,16 @@
+string-bazaar is usered for feed windows manager status bar. I use it in dmw or i3
+
+== How To use it:
+
+1) Copy software into a directory <path>
+git clone git://github.com/angal/string-bazaar.git
+          
+2) Use it:
+
+for dwm write into .xinitrc this line:
+exec <path>/string-bazaar/dwm-bazaar
+
+for i3 write in ~/.i3/config 
+bar {
+   status_command ~/string-bazaar/string-bazaar
+}
