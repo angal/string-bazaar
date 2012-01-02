@@ -1,0 +1,2 @@
+./string-bazaar/string-bazaar start "xsetroot -name '<<str>>'" &
+exec start-euclid

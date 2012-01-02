@@ -1,0 +1,8 @@
+#while true; do
+#   xsetroot -name "$( date +"%F %R" )"
+#   sleep 1m    # Update time every minute
+#done &
+#exec dwm
+
+./string-bazaar/string-bazaar start "xsetroot -name '<<str>>'" &
+exec dwm

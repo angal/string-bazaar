@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+#
+#   wmiirc-bazaar - wmii-bazaar
+#   by Antonio Galeone <antonio.galeone@gmail.org>
+#
+#
+
+Dir.chdir("#{File.dirname(__FILE__)}")
+require "#{Dir.pwd}/string-bazaar"
+if ARGV.length > 0
+  case ARGV[0]
+    when "start"
+      StringBazaarController.start(ARGV[1])
+    when "stop"
+      StringBazaarController.stop
+    when "restart"
+      StringBazaarController.restart
+  end
+else
+  StringBazaarController.start
+end
