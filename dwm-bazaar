@@ -4,5 +4,6 @@
 #done &
 #exec dwm
 
+source ~/.xinitrc
 ./string-bazaar/string-bazaar start "xsetroot -name '<<str>>'" &
 exec dwm

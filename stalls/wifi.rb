@@ -29,9 +29,22 @@ class Wifi < StringStall
   end
   
   def check
-    File.exists?("#{self.conf('info_dir')}/wireless/link")
+    #File.exists?("#{self.conf('info_dir')}/wireless/link")
+    File.exists?("#{self.conf('info_dir')}/carrier")
   end
-  
+ 
+  def connected?
+    res=0
+    open("#{self.conf('info_dir')}/carrier","r"){|f|
+       begin
+         value = f.read
+         res = value.strip.to_i
+       rescue  Errno::EINVAL => e
+         res = 0
+       end   
+    }
+    res==1
+  end
   
   def update
     @level = current_level
@@ -80,7 +93,20 @@ class Wifi < StringStall
 
   def current_level
     res = 0
-    open("#{self.conf('info_dir')}/wireless/link","r"){|f|
+    begin
+      signal = %x(sudo iw dev wlan0 link | grep 'signal' | awk '{printf "%s ", $2, $3}')
+      signal.strip! if signal
+      res = signal.to_i.abs
+    rescue Error => e
+      res=0 
+    end 
+    res
+  end 
+
+  def current_level_old
+    res = 0
+    #open("#{self.conf('info_dir')}/wireless/link","r"){|f|
+    open("#{self.conf('info_dir')}/iflink","r"){|f|
        begin
          value = f.read
          res = value.strip.to_i
