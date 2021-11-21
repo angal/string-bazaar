@@ -24,7 +24,7 @@ class Wifi < StringStall
     @ip_nil="?"
     @ip_addr=@ip_nil
     attach_task(5,self,:update)
-    @widget = add_widget(StringWidget.new(@name))
+    @widget = add_widget(StringWidget.new(self))
     update
   end
   

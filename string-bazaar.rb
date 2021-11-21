@@ -39,9 +39,9 @@ class StringBazaar
     @controller=_controller
     @widgets = Array.new
     @refresh_required = false
-    @sep = @controller.conf('sep').gsub('\s', " ")
-    @sep_begin = @controller.conf('sep.begin').gsub('\s', " ")
-    @sep_end = @controller.conf('sep.end').gsub('\s', " ")
+    @sep = @controller.conf('output.text.sep').gsub('\s', " ")
+    @sep_begin = @controller.conf('output.text.sep.begin').gsub('\s', " ")
+    @sep_end = @controller.conf('output.text.sep.end').gsub('\s', " ")
   end
 
   def system_send(_cmd,_info="StringBazaar")
@@ -87,14 +87,49 @@ class StringBazaar
         else
           str += w.value
         end
+        if @controller.conf('output') == "i3bar-json"
+          str = "['full_text:'#{str}]"
+        end
       end
     }
-    @str = "#{@sep_begin}#{str}#{@sep_end}"
+    if @controller.conf('output') == "i3bar-json"
+      @str = "[#{str}],\n"
+    else
+      @str = "#{@sep_begin}#{str}#{@sep_end}"
+    end
+  end
+  
+  def build_string_i3bar_json
+    str = ''
+    @widgets.each{|w|
+      if w.visible
+        str += "," if str.length>0
+        str += "{"
+        if w.blinking? && !w.blink_on
+          str += "\"full_text\":\"#{" "*w.value.length}\""
+        else
+          str += "\"full_text\":\"#{w.value}\""
+        end
+        #i3 property
+        w.stall.conf_group("i3bar").each{|prop|
+          str += ",\"#{prop[0]}\":\"#{prop[1]}\""
+        }
+        str += "}"
+      end
+    }
+    if @controller.conf('output') == "i3bar-json"
+      @str = "[#{str}],\n"
+    else
+      @str = "#{@sep_begin}#{str}#{@sep_end}"
+    end
   end
 
   def refresh
-    #p build_string
-    build_string
+    if @controller.conf('output') == "i3bar-json"
+      build_string_i3bar_json
+    else
+      build_string
+    end
     @refresh_required = false
   end
 
@@ -126,7 +161,10 @@ class StringBazaarController
     mainloop
   end
 
-  def conf(_property)
+  def conf(_property, _value=nil)
+    if !_value.nil?
+      @props[_property] = _value
+    end
     @props[_property]
   end
 
@@ -362,10 +400,26 @@ class StringBazaarController
     @tasks.delete_if {|x| x[:task_id] == _task_id }
   end
 
+  def mainloop_begin
+    if conf('output') == 'i3bar-json'
+      system(@cmd.gsub('<<str>>', '{"version":1}\n[\n'))
+    else
+      system(@cmd.gsub('<<str>>', "string-bazaar"))
+    end
+  end
+
+  def mainloop_end
+    if conf('output') == 'i3bar-json'
+      system(@cmd.gsub('<<str>>', ']\n'))
+    else
+    
+    end
+  end
+
   def mainloop
-    system(@cmd.gsub('<<str>>', "string-bazaar"))
+    mainloop_begin
     j=0
-    unit = 1
+    unit = conf('stalls.main-loop-lapse').to_i
     loop {
       j=j+unit
       tasks_number = @tasks.length
@@ -391,6 +445,7 @@ class StringBazaarController
       #system("echo ciao")
       system(@cmd.gsub('<<str>>', @bazaar.str))
     }
+    mainloop_end
     finalize
   end
 
@@ -424,10 +479,12 @@ class StringWidget
   attr_accessor :visible
   attr_accessor :bazaar
   attr_reader :name
+  attr_reader :stall
   attr_reader :blink_on
 
-  def initialize(_name)
-    @name = _name
+  def initialize(_stall)
+    @stall = _stall
+    @name = _stall.name
     @visible = false
     @blinking = false
   end
@@ -461,8 +518,8 @@ end
 
 class StringStall
   attr_reader :name
-  def initialize(_wmii_controller, _name)
-    @wmii_controller = _wmii_controller
+  def initialize(_string_controller, _name)
+    @string_controller = _string_controller
     @name = _name
   end
 
@@ -474,28 +531,37 @@ class StringStall
     end
   end
 
-  def conf(_property)
-    @wmii_controller.conf("stalls.conf.#{@name}.#{_property}")
+  def conf(_property, _value=nil)
+    if !_value.nil?
+       @string_controller.conf("stalls.conf.#{@name}.#{_property}", _value)
+    else
+      _conf_value = @string_controller.conf("stalls.conf.#{@name}.#{_property}")
+      if _conf_value.nil?
+        _conf_value = @string_controller.conf("stalls.conf.#{_property}")
+        @string_controller.conf("stalls.conf.#{@name}.#{_property}", _conf_value)
+      end
+      _conf_value
+    end 
   end
 
   def conf_group(_group)
-    @wmii_controller.conf_group("stalls.conf.#{@name}.#{_group}")
+    @string_controller.conf_group("stalls.conf.#{@name}.#{_group}")
   end
 
   def global_conf(_property)
-    @wmii_controller.conf(_property)
+    @string_controller.conf(_property)
   end
 
   def global_conf_group(_group)
-    @wmii_controller.conf_group(_group)
+    @string_controller.conf_group(_group)
   end
 
   def system_send(_cmd, _info="#{@name} exec")
-    @wmii_controller.system_send(_cmd, _info)
+    @string_controller.system_send(_cmd, _info)
   end
 
   def log(_caller, _msg, _level=5)
-    @wmii_controller.log(_caller, _msg, _level)
+    @string_controller.log(_caller, _msg, _level)
   end
 
   def check
@@ -503,40 +569,40 @@ class StringStall
   end
 
   def build
+    attach_task(conf('lapse').to_i,self,:update)
+    @widget = add_widget(StringWidget.new(self))
+    update
   end
 
   def update
   end
 
   def attach_task(_gap=1, _worker=self, _method=:update)
-    @wmii_controller.attach_task(_gap, _worker, _method)
+    @string_controller.attach_task(_gap, _worker, _method)
   end
 
   def detach_task(_task_id=nil)
-    @wmii_controller.detach_task(_task_id)
+    @string_controller.detach_task(_task_id)
   end
 
   def refresh_widget(_widget)
-    @wmii_controller.refresh_widget(_widget)
+    @string_controller.refresh_widget(_widget)
   end
 
   def add_widget(_widget)
-    @wmii_controller.add_widget(_widget)
+    @string_controller.add_widget(_widget)
   end
 
   def remove_widget(_widget)
-    @wmii_controller.remove_widget(_widget)
+    @string_controller.remove_widget(_widget)
   end
 
   def hide_widget(_widget)
-    @wmii_controller.hide_widget(_widget)
+    @string_controller.hide_widget(_widget)
   end
 
   def show_widget(_widget)
-    @wmii_controller.show_widget(_widget)
+    @string_controller.show_widget(_widget)
   end
 
 end
-
-
-#WmiiBazaarController.start

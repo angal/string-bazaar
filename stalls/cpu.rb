@@ -7,7 +7,7 @@
 class Cpu < StringStall
   def build
     attach_task(1,self,:update)
-    @widget = add_widget(StringWidget.new(@name))
+    @widget = add_widget(StringWidget.new(self))
     @widget.value = freq_format
     #--- cpu time
     @old_cpus = Hash.new

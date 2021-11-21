@@ -4,11 +4,6 @@
 #
 
 class Cmdout < StringStall
-  def build
-    attach_task(conf('gap').to_i,self,:update)
-    @widget = add_widget(StringWidget.new(@name))
-    update
-  end
   
   def update
     @widget.value = "#{conf('label')}#{self.cmdoutput}" 

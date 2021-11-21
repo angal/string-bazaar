@@ -7,7 +7,7 @@
 class Biff < StringStall
   def build
     attach_task(30,self,:update)
-    @widget = add_widget(StringWidget.new(@name))
+    @widget = add_widget(StringWidget.new(self))
     update
   end
   

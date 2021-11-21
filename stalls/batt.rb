@@ -12,7 +12,7 @@ class Batt < StringStall
     @alert_level = conf("alert_level").to_i
     attach_task(10,self,:update_charging_state)
     attach_task(1,self,:update)
-    @widget = add_widget(StringWidget.new(@name))
+    @widget = add_widget(StringWidget.new(self))
     update_charging_state
     update
   end
