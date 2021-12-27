@@ -87,16 +87,9 @@ class StringBazaar
         else
           str += w.value
         end
-        if @controller.conf('output') == "i3bar-json"
-          str = "['full_text:'#{str}]"
-        end
       end
     }
-    if @controller.conf('output') == "i3bar-json"
-      @str = "[#{str}],\n"
-    else
-      @str = "#{@sep_begin}#{str}#{@sep_end}"
-    end
+    @str = "#{@sep_begin}#{str}#{@sep_end}"
   end
   
   def build_string_i3bar_json
@@ -117,11 +110,7 @@ class StringBazaar
         str += "}"
       end
     }
-    if @controller.conf('output') == "i3bar-json"
-      @str = "[#{str}],\n"
-    else
-      @str = "#{@sep_begin}#{str}#{@sep_end}"
-    end
+    @str = "[#{str}],\n"
   end
 
   def refresh
